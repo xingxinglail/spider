@@ -63,7 +63,7 @@ async function insetOrUpdateArticle (articleId, articleObj) {
 }
 
 // redis中设置要抓取的id 返回ids LIST
-async function initIds () {
+async function initData () {
   const len = await redis.scard(ARTICLE_IDS_KEY)
   if (len === 0) {
     const ids = new Array(10000)
@@ -77,7 +77,11 @@ async function initIds () {
       }
     }
   }
-  return await redis.smembers(ARTICLE_IDS_KEY)
+}
+
+// 取出要抓取的数据
+async function getDataList (count) {
+  return await redis.spop(ARTICLE_IDS_KEY, count)
 }
 
 // 开始抓取
@@ -87,9 +91,8 @@ async function goCrawl (num) {
   } else if (num === 'all') {
     num = await redis.scard(ARTICLE_IDS_KEY)
   }
-  const articleIdList = await initIds() // 初始化文章id并且返回所有文章id
 
-  const dataList = await runCrawl(articleIdList.slice(0, num)) // 抓取，通过cheerio处理
+  const dataList = await runCrawl(await getDataList(num)) // 抓取，通过cheerio处理
 
   let articles = []
   for (let i = 0; i < dataList.length; i++) {
@@ -103,4 +106,7 @@ async function goCrawl (num) {
   return articles
 }
 
-module.exports = goCrawl
+module.exports = {
+  initData,
+  goCrawl,
+}

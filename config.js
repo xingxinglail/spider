@@ -4,7 +4,7 @@ const STARID = 1250000 // 开始爬取的ID
 
 const ENDID = 2239823 // 结束爬取的ID
 
-const CRAWL_COUNT = 100 // 默认抓取数量
+const CRAWL_COUNT = 5 // 默认抓取数量
 
 module.exports = {
   ARTICLE_IDS_KEY,
