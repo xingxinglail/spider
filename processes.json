@@ -1,5 +1,5 @@
 {
   "apps" : [{
-    "script": "api.js crawl"
+    "script": "app.js crawl"
   }]
 }
