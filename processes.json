@@ -1,5 +1,6 @@
 {
   "apps" : [{
-    "script": "app.js crawl"
+    "script": "./app.js",
+    "args": "crawl"
   }]
 }
