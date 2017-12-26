@@ -1,4 +1,4 @@
-# 抓取虎扑NBA新闻
+# 抓取虎嗅文章
 
 ## Redis + Mongodb
 

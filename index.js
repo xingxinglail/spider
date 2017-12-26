@@ -9,37 +9,29 @@ const { ARTICLE_IDS_KEY, STARID, ENDID, CRAWL_COUNT } = require('./config')
 const { Schema } = mongoose
 
 const articleSchema = new Schema({
-  articleId: { // 文章id
+  article_id: { // 文章id
     type: Number,
     required: true,
     unique: true,
     index: true
   },
-  crawlTime: { // 抓取时间
+  crawl_time: { // 抓取时间
     type: Date
   },
   title: { // 文章标题
     type: String
   },
-  createTime: { // 文章创建时间
-    type: Date
+  create_time: { // 文章创建时间
+    type: Date,
+    index: true
   },
-  source: { // 来源
+  tags: { // 标签
+    type: Array,
+  },
+  author_name: { // 作者姓名
     type: String
   },
-  editor: { // 编辑
-    type: String
-  },
-  tag: { // 标签
-    type: String
-  },
-  writer_name: { // 作者姓名
-    type: String
-  },
-  writer_company: { // 作者公司
-    type: String
-  },
-  writer_avatar_url: { // 作者头像url
+  author_id: { // 作者ID
     type: String
   },
   content: { // 文章内容
@@ -88,22 +80,25 @@ async function getDataList (count) {
 async function goCrawl (num) {
   if (!num) {
     num = CRAWL_COUNT
-  } else if (num === 'all') {
-    num = await redis.scard(ARTICLE_IDS_KEY)
   }
 
   const dataList = await runCrawl(await getDataList(num)) // 抓取，通过cheerio处理
 
   let articles = []
+  let successCount = 0
+  let failCount = 0
   for (let i = 0; i < dataList.length; i++) {
-    if (dataList[i].status) {
-      articles.push(dataList[i])
+    if (dataList[i].http_status === 200) {
+      await insetOrUpdateArticle(dataList[i].article_id, dataList[i]) // 写入或更新数据库
+      successCount++
     } else {
-      const article = await insetOrUpdateArticle(dataList[i].articleId, dataList[i]) // 写入或更新数据库
-      articles.push(article)
+      failCount++
     }
   }
-  return articles
+  return {
+    successCount,
+    failCount
+  }
 }
 
 module.exports = {

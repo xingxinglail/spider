@@ -1,72 +1,64 @@
 const axios = require('axios')
 const cheerio = require('cheerio')
+const Tag = require('./tag_class')
+const jieba = require('nodejieba')
 
 async function crawl (id) {
-  try {
-    const res = await axios.get(`https://voice.hupu.com/nba/${id}.html`)
-    console.log(`正在爬取id${id}的文章...`)
-    const $ = cheerio.load(res.data)
-    const title = $('head').children('title').text().split('_')[0]
-    const voiceMainDom = $('.voice-main')
-
-    if (voiceMainDom.children('.artical-content-generalDynamic').length === 0 && voiceMainDom.children('div.artical-content').length === 0) {
-      throw new Error('未知错误')
-    }
-
-    const createTime = new Date($('#pubtime_baidu').text().trim()).valueOf() // 发表时间
-    const source = $('#source_baidu').children().text().trim() // 来源
-    const editor = $('#editor_baidu').text().split('：')[1].replace(')', '') // 编辑
-    let tag = '' // 标签
-    let writer_name = '' // 作家姓名
-    let writer_company = '' // 作家公司
-    let writer_avatar_url = '' // 作家头像url
-    const content = []
-    if (voiceMainDom.children('.artical-content-generalDynamic').length === 1) { // 针对老版本作家
-      tag = '作家'
-      const avatarImg = voiceMainDom.children('.artical-content-generalDynamic').find('dd.avatar').find('img')
-      writer_name = avatarImg.attr('alt')
-      writer_avatar_url = avatarImg.attr('src')
-      writer_company = voiceMainDom.children('.artical-content-generalDynamic').find('span.aboutInfo').text()
-      const dtDom = voiceMainDom.children('.artical-content-generalDynamic').find('dt.dynamic-content')
-      dtDom.find('div, img, p').map((i, obj) => {
-        if ($(obj).text()) {
-          content.push($(obj).text().trim())
-        }
-        if (obj.name === 'img') {
-          content.push($(obj).attr('src'))
-        }
-      })
-    } else {
-      const articalContentDom = voiceMainDom.children('div.artical-content')
-      articalContentDom.find('div > img, p, span').map((i, obj) => {
-        if ($(obj).text()) {
-          content.push($(obj).text().trim())
-        }
-        if (obj.name === 'img') {
-          content.push($(obj).attr('src'))
-        }
-      })
-    }
-
+  const res = await axios.get(`https://www.huxiu.com/article/${id}.html`)
+  console.log(`正在爬取id${id}的文章...`)
+  const $ = cheerio.load(res.data)
+  if ($('#page_404').length > 0) {
     return {
-      articleId: id,
-      crawlTime: Date.now(),
-      title,
-      createTime,
-      source,
-      editor,
-      tag,
-      writer_name,
-      writer_company,
-      writer_avatar_url,
-      content
+      http_status: 404,
+      article_id: id
     }
-  } catch (e) {
-    return {
-      articleId: id,
-      status: e.response ? e.response.status : '0000'
+  }
+
+  const content = $('.article-section-wrap').find('.article-wrap')
+
+  const tags = [] // 文章标签
+
+  const title = content.children('h1.t-h1').text().trim() // 文章标题
+
+  const titleTags = jieba.extract(title, 5)
+
+  for (let i = 0; i < titleTags.length; i++) {
+    tags.push(new Tag('TITLE_TAG', titleTags[i].word, titleTags[i].weight))
+  }
+
+  const authorDom = content.children('.article-author')
+  const authorName = authorDom.children('span.author-name').text().trim() // 作者姓名
+  const authorId = authorDom.children('span.author-name').children('a').attr('href').match(/\d+/g)[0] // 作者ID
+  let createTime = authorDom.find('span.article-time').text().trim() // 发表时间
+  createTime = new Date(createTime).getTime()
+  const classifyAdom = authorDom.find('a.column-link')
+  if (classifyAdom.length > 0) { // 文章分类
+    classifyAdom.map((index, el) => {
+      tags.push(new Tag('ARTICLE_CLASSIFY', $(el).text().trim()), 1)
+    })
+  }
+
+  const articleContent = []
+  articleContent.push(content.children('.article-img-box').children('img').attr('src')) // 文章头图
+  content.children('.article-content-wrap').find('p, img').map((index, el) => {
+    if ($(el).text().trim()) {
+      articleContent.push($(el).text().trim())
     }
-    // throw e
+    if (el.name === 'img') {
+      articleContent.push($(el).attr('src'))
+    }
+  })
+
+  return {
+    http_status: 200,
+    article_id: id,
+    crawl_time: Date.now(),
+    title,
+    create_time: createTime,
+    tags,
+    author_name: authorName,
+    author_id: authorId,
+    content: articleContent
   }
 }
 

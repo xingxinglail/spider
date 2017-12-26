@@ -1,5 +1,9 @@
 require('./mongoose')
 
+const redis = require('./redis')
+
+const { ARTICLE_IDS_KEY } = require('./config')
+
 const Crawl = require('./index')
 
 switch (process.argv[2]) {
@@ -13,9 +17,8 @@ switch (process.argv[2]) {
     })
     break
   case 'crawl':
-    Crawl.goCrawl(process.argv[3]).then(c => {
+    loop(process.argv[3]).then(c => {
       console.log(c)
-      console.log('done')
       process.exit(1)
     }).catch(e => {
       console.log(e)
@@ -24,3 +27,12 @@ switch (process.argv[2]) {
     break
 }
 
+async function loop (num) {
+  const scard = await redis.scard(ARTICLE_IDS_KEY)
+  while (scard > 0) {
+    await Crawl.goCrawl(num).then(c => {
+      console.log(c)
+    })
+  }
+  return 'done'
+}

@@ -1,6 +1,8 @@
 const mongoose = require('mongoose')
 
-const uri = 'mongodb://localhost:27017/what_i_love'
+mongoose.Promise = Promise
+
+const uri = 'mongodb://localhost:27017/huxiu'
 
 mongoose.connect(uri, { useMongoClient: true })
 
