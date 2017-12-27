@@ -3,6 +3,12 @@ const cheerio = require('cheerio')
 const Tag = require('./tag_class')
 const jieba = require('nodejieba')
 
+;(async () => {
+  await crawl(10259)
+})().then().catch(e => {
+  console.log(e)
+})
+
 async function crawl (id) {
   const res = await axios.get(`https://www.huxiu.com/article/${id}.html`)
   console.log(`正在爬取id${id}的文章...`)
@@ -14,7 +20,10 @@ async function crawl (id) {
     }
   }
 
-  const content = $('.article-section-wrap').find('.article-wrap')
+  let content = $('.article-section-wrap').find('.article-wrap')
+  if ($('.article-section-wrap').length === 0) {
+    content = $('#modal_report').find('.article-wrap')
+  }
 
   const tags = [] // 文章标签
 
@@ -28,7 +37,12 @@ async function crawl (id) {
 
   const authorDom = content.children('.article-author')
   const authorName = authorDom.children('span.author-name').text().trim() // 作者姓名
-  const authorId = authorDom.children('span.author-name').children('a').attr('href').match(/\d+/g)[0] // 作者ID
+
+  const href = authorDom.children('span.author-name').children('a').attr('href') // 作者ID
+  let authorId = href
+  if (/\d/g.test(authorId)) {
+    authorId = href.match(/\d+/g)[0]
+  }
   let createTime = authorDom.find('span.article-time').text().trim() // 发表时间
   createTime = new Date(createTime).getTime()
   const classifyAdom = authorDom.find('a.column-link')
