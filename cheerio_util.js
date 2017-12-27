@@ -3,12 +3,6 @@ const cheerio = require('cheerio')
 const Tag = require('./tag_class')
 const jieba = require('nodejieba')
 
-;(async () => {
-  await crawl(10259)
-})().then().catch(e => {
-  console.log(e)
-})
-
 async function crawl (id) {
   const res = await axios.get(`https://www.huxiu.com/article/${id}.html`)
   console.log(`正在爬取id${id}的文章...`)
